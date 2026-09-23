@@ -87,18 +87,34 @@ function initDecal3(makeShader){
  const img=document.getElementById('brandAsset');const upload=()=>{if(!gl3||!brandTex3)return;gl3.bindTexture(gl3.TEXTURE_2D,brandTex3);gl3.pixelStorei(gl3.UNPACK_FLIP_Y_WEBGL,false);gl3.texImage2D(gl3.TEXTURE_2D,0,gl3.RGBA,gl3.RGBA,gl3.UNSIGNED_BYTE,img);};
  if(img.complete)upload();else img.onload=upload;
 }
-function drawBrand3(x,z){if(!brandProgram3||!brandTex3||!document.getElementById('brandAsset').complete)return;
- // The adhesive label sits on the rear hatch, facing the follow-camera, and moves with the Uno.
- const rear=z-2.095, xl=x-.80,xr=x+.80,yb=.53,yt=.85;
- const a=projected3([xl,yb,rear]),b=projected3([xr,yb,rear]),c=projected3([xr,yt,rear]),d=projected3([xl,yt,rear]);if(!a||!b||!c||!d)return;
- const uv=(p,u,v)=>[...p,u,v];const vertices=[...uv(a,0,1),...uv(b,1,1),...uv(c,1,0),...uv(a,0,1),...uv(c,1,0),...uv(d,0,0)];
- gl3.useProgram(brandProgram3);gl3.bindBuffer(gl3.ARRAY_BUFFER,brandBuffer3);gl3.bufferData(gl3.ARRAY_BUFFER,new Float32Array(vertices),gl3.DYNAMIC_DRAW);
- gl3.enableVertexAttribArray(brandAttr3.pos);gl3.enableVertexAttribArray(brandAttr3.uv);gl3.vertexAttribPointer(brandAttr3.pos,3,gl3.FLOAT,false,20,0);gl3.vertexAttribPointer(brandAttr3.uv,2,gl3.FLOAT,false,20,12);
- gl3.activeTexture(gl3.TEXTURE0);gl3.bindTexture(gl3.TEXTURE_2D,brandTex3);gl3.uniform1i(brandLoc3.tex,0);gl3.enable(gl3.BLEND);gl3.blendFunc(gl3.SRC_ALPHA,gl3.ONE_MINUS_SRC_ALPHA);
- gl3.depthMask(false);gl3.drawArrays(gl3.TRIANGLES,0,6);gl3.depthMask(true);gl3.disable(gl3.BLEND);
- gl3.useProgram(shader3);gl3.bindBuffer(gl3.ARRAY_BUFFER,buf3);gl3.enableVertexAttribArray(gl3.getAttribLocation(shader3,'pos'));gl3.enableVertexAttribArray(gl3.getAttribLocation(shader3,'color'));gl3.vertexAttribPointer(gl3.getAttribLocation(shader3,'pos'),3,gl3.FLOAT,false,24,0);gl3.vertexAttribPointer(gl3.getAttribLocation(shader3,'color'),3,gl3.FLOAT,false,24,12);
+function drawBrand3(x,z){
+ if(!brandProgram3||!brandTex3||!document.getElementById('brandAsset').complete)return;
+ const verts=[], uv=(p,u,v)=>[...p,u,v];
+ function stamp(a,b,c,d){
+  const p=[a,b,c,d].map(projected3);if(p.some(q=>!q))return;
+  verts.push(...uv(p[0],0,1),...uv(p[1],1,1),...uv(p[2],1,0),
+             ...uv(p[0],0,1),...uv(p[2],1,0),...uv(p[3],0,0));
+ }
+ // A mesma marca Filhos de Blanka nas faces da tampa e das portas.
+ stamp([x-.60,.62,z-2.110],[x+.60,.62,z-2.110],[x+.60,1.005,z-2.110],[x-.60,1.005,z-2.110]);
+ stamp([x+1.100,.68,z-.66],[x+1.100,.68,z+.67],[x+1.100,.995,z+.67],[x+1.100,.995,z-.66]);
+ stamp([x-1.100,.68,z+.67],[x-1.100,.68,z-.66],[x-1.100,.995,z-.66],[x-1.100,.995,z+.67]);
+ if(!verts.length)return;
+ gl3.useProgram(brandProgram3);gl3.bindBuffer(gl3.ARRAY_BUFFER,brandBuffer3);
+ gl3.bufferData(gl3.ARRAY_BUFFER,new Float32Array(verts),gl3.DYNAMIC_DRAW);
+ gl3.enableVertexAttribArray(brandAttr3.pos);gl3.enableVertexAttribArray(brandAttr3.uv);
+ gl3.vertexAttribPointer(brandAttr3.pos,3,gl3.FLOAT,false,20,0);
+ gl3.vertexAttribPointer(brandAttr3.uv,2,gl3.FLOAT,false,20,12);
+ gl3.activeTexture(gl3.TEXTURE0);gl3.bindTexture(gl3.TEXTURE_2D,brandTex3);
+ gl3.uniform1i(brandLoc3.tex,0);gl3.enable(gl3.BLEND);gl3.blendFunc(gl3.SRC_ALPHA,gl3.ONE_MINUS_SRC_ALPHA);
+ gl3.depthMask(false);gl3.drawArrays(gl3.TRIANGLES,0,verts.length/5);
+ gl3.depthMask(true);gl3.disable(gl3.BLEND);
+ gl3.useProgram(shader3);gl3.bindBuffer(gl3.ARRAY_BUFFER,buf3);
+ const pos=gl3.getAttribLocation(shader3,'pos'),color=gl3.getAttribLocation(shader3,'color');
+ gl3.enableVertexAttribArray(pos);gl3.enableVertexAttribArray(color);
+ gl3.vertexAttribPointer(pos,3,gl3.FLOAT,false,24,0);
+ gl3.vertexAttribPointer(color,3,gl3.FLOAT,false,24,12);
 }
-
 function resize3D(){if(!gl3)return;const r=canvas3d.getBoundingClientRect();renderWidth3=Math.max(300,r.width);renderHeight3=Math.max(240,r.height);const ratio=Math.min(window.devicePixelRatio||1,renderWidth3<700?1.2:1.65);canvas3d.width=Math.round(renderWidth3*ratio);canvas3d.height=Math.round(renderHeight3*ratio);gl3.viewport(0,0,canvas3d.width,canvas3d.height);}
 function init3D(){try{gl3=canvas3d.getContext('webgl',{alpha:true,depth:true,antialias:true,premultipliedAlpha:false,powerPreference:'low-power'});if(!gl3)throw Error('WebGL não disponível');const makeShader=(type,src)=>{const sh=gl3.createShader(type);gl3.shaderSource(sh,src);gl3.compileShader(sh);if(!gl3.getShaderParameter(sh,gl3.COMPILE_STATUS))throw Error(gl3.getShaderInfoLog(sh));return sh;};shader3=gl3.createProgram();gl3.attachShader(shader3,makeShader(gl3.VERTEX_SHADER,VERT3));gl3.attachShader(shader3,makeShader(gl3.FRAGMENT_SHADER,FRAG3));gl3.linkProgram(shader3);if(!gl3.getProgramParameter(shader3,gl3.LINK_STATUS))throw Error('Falha na ligação dos shaders');gl3.useProgram(shader3);buf3=gl3.createBuffer();gl3.bindBuffer(gl3.ARRAY_BUFFER,buf3);let pos=gl3.getAttribLocation(shader3,'pos'),color=gl3.getAttribLocation(shader3,'color');gl3.enableVertexAttribArray(pos);gl3.enableVertexAttribArray(color);gl3.vertexAttribPointer(pos,3,gl3.FLOAT,false,24,0);gl3.vertexAttribPointer(color,3,gl3.FLOAT,false,24,12);loc3.fog=gl3.getUniformLocation(shader3,'fog');initDecal3(makeShader);gl3.enable(gl3.DEPTH_TEST);gl3.depthFunc(gl3.LEQUAL);gl3.disable(gl3.CULL_FACE);resize3D();}catch(err){gl3=null;canvas3d.style.background='#122443';canvas3d.style.display='none';canvas.style.visibility='visible';canvas.style.pointerEvents='auto';const p=document.getElementById('panel');if(p)p.insertAdjacentHTML('beforeend','<p style="color:#ffe599;font-size:12px">Não foi possível ativar o modo 3D neste navegador: '+String(err.message).replace(/[<>]/g,'')+'). A versão 3D requer WebGL.</p>');}}
 function wave3(d,a,b,amp){if(d<=a||d>=b)return 0;const q=(d-a)/(b-a);return amp*Math.sin(q*Math.PI)**2;}
@@ -207,7 +223,115 @@ function cabinV3(x,z,w,len,height,paint,glass){
  quad3([x-wide*.87,y+.18,rl-.024],[x+wide*.87,y+.18,rl-.024],[x+top*.88,height-.17,rt-.022],[x-top*.88,height-.17,rt-.022],glass);
  quad3([x-wide*.90,y+.16,fl+.015],[x+wide*.90,y+.16,fl+.015],[x+top*.87,height-.15,ft+.019],[x-top*.87,height-.15,ft+.019],glass);
 }
+
+/* V5 - Uno lowpoly dedicado. Eixos: frente +Z, traseira -Z. */
+function unoArtV5(x,z){
+ const C={
+  body:[.945,.954,.944],bodyHi:[.985,.989,.976],side:[.885,.906,.905],
+  edge:[.74,.77,.77],black:[.055,.060,.066],rubber:[.10,.105,.11],
+  glass:[.075,.165,.205],glassHi:[.13,.27,.32],tail:[.83,.075,.055],
+  amber:[.99,.51,.12],reverse:[.91,.92,.88],
+  brown:[.40,.22,.115],brownEdge:[.53,.31,.16],brownLit:[.65,.42,.23],
+  rack:[.13,.14,.145]
+ };
+ const b=(xx,yy,zz,w,h,l,color)=>cuboid3(x+xx,yy,z+zz,w,h,l,color);
+ const q=(a,b1,c,d,color)=>quad3([a[0]+x,a[1],a[2]+z],[b1[0]+x,b1[1],b1[2]+z],[c[0]+x,c[1],c[2]+z],[d[0]+x,d[1],d[2]+z],color);
+ const rear=-2.080,front=2.085;
+ shadowV3(x,z,1.24,2.22);
+ // Duas secções facetadas dão ao hatch uma traseira quase vertical,
+ // capô curto e bordas menos cúbicas. Não é mais a carroceria genérica dos NPCs.
+ b(0,.35,0,2.10,.57,4.03,C.body);
+ for(const s of [-1,1]){
+  q([s*.95,.40,rear],[s*1.085,.48,rear+.10],[s*1.085,1.04,rear+.10],[s*.94,1.15,rear],C.side);
+  q([s*1.085,.48,rear+.10],[s*1.085,.48,front-.15],[s*1.085,1.02,front-.15],[s*1.085,1.04,rear+.10],C.side);
+  q([s*1.085,1.04,rear+.10],[s*1.085,1.02,front-.15],[s*.91,1.14,front-.04],[s*.92,1.16,rear+.06],C.bodyHi);
+ }
+ // Parachoques e soleiras moldados em borracha escura.
+ b(0,.30,-2.090,2.22,.30,.20,C.black);
+ b(0,.30,2.110,2.19,.30,.19,C.black);
+ b(0,.36,-2.182,1.73,.11,.10,C.rubber);
+ b(0,.36,2.205,1.68,.11,.08,C.rubber);
+ for(const s of [-1,1]){
+  b(s*1.080,.46,0,.055,.13,3.40,C.rubber);
+  b(s*1.087,.52,.08,.025,.026,3.31,C.edge);
+ }
+ // Tampa traseira e lanternas altas, características do hatch.
+ q([-.98,.51,rear-.018],[.98,.51,rear-.018],[.97,1.29,rear-.015],[-.97,1.29,rear-.015],C.body);
+ b(0,.94,rear-.023,1.44,.028,.026,C.edge);
+ for(const s of [-1,1]){
+  b(s*.879,.84,rear-.035,.245,.81,.065,C.black);
+  b(s*.879,.99,rear-.075,.191,.38,.075,C.tail);
+  b(s*.879,.69,rear-.078,.191,.137,.078,C.amber);
+  b(s*.879,1.29,rear-.072,.191,.107,.076,C.reverse);
+ }
+ b(0,.50,rear-.094,.67,.032,.032,C.rubber);
+ b(0,.43,rear-.105,.48,.11,.038,C.reverse);
+ // Traseira da cabine: quase ereta, com vidro trapezoidal e borracha preta.
+ q([-.93,1.13,-1.93],[.93,1.13,-1.93],[.805,2.02,-1.70],[-.805,2.02,-1.70],C.body);
+ q([-.84,1.31,-1.947],[.84,1.31,-1.947],[.725,1.91,-1.745],[-.725,1.91,-1.745],C.black);
+ q([-.765,1.365,-1.961],[.765,1.365,-1.961],[.660,1.850,-1.766],[-.660,1.850,-1.766],C.glass);
+ q([-.57,1.84,-1.778],[.18,1.84,-1.778],[.33,1.63,-1.865],[-.45,1.63,-1.865],C.glassHi);
+ // Limpador traseiro e vinco da tampa.
+ b(-.20,1.36,-1.967,.66,.026,.023,C.black);
+ b(.10,1.35,-1.967,.035,.11,.030,C.black);
+ // Corpo superior de teto ALTO, coluna C robusta e frente curta.
+ q([-.81,2.02,-1.70],[.81,2.02,-1.70],[.82,2.025,.82],[-.82,2.025,.82],C.bodyHi);
+ q([-.84,2.027,-1.70],[-.93,1.14,-1.93],[-.94,1.14,1.33],[-.82,2.027,.82],C.body);
+ q([.84,2.027,-1.70],[.93,1.14,-1.93],[.94,1.14,1.33],[.82,2.027,.82],C.body);
+ // Duas janelas laterais por lado, divididas pela coluna central.
+ for(const s of [-1,1]){
+  const a=s*.949,t=s*.831;
+  q([a,1.34,-1.72],[a,1.34,-.34],[t,1.88,-.29],[t,1.88,-1.51],C.black);
+  q([a,1.40,-1.62],[a,1.40,-.37],[t,1.83,-.35],[t,1.83,-1.46],C.glass);
+  q([a,1.34,-.28],[a,1.34,1.24],[t,1.88,.76],[t,1.88,-.25],C.black);
+  q([a,1.41,-.22],[a,1.41,1.13],[t,1.82,.73],[t,1.82,-.19],C.glassHi);
+  b(s*.963,1.32,-.29,.045,.71,.075,C.black);
+  b(s*.955,1.19,-1.08,.038,.035,.78,C.rubber);
+  b(s*1.093,.87,.72,.235,.15,.315,C.black);
+  b(s*1.145,.91,.72,.055,.10,.245,C.glass);
+  // Maçanetas, vinco das portas, caixa de roda em contraste.
+  b(s*1.092,.84,-.70,.024,.055,.27,C.black);
+  b(s*1.092,.84,.61,.024,.055,.25,C.black);
+  b(s*1.092,.78,.01,.018,.49,.023,C.edge);
+  for(const dz of [-1.36,1.31]){
+   b(s*1.07,.48,dz,.085,.39,.89,C.rubber);
+   wheelV2(x+s*1.265+s*.043,z+dz,.405);
+  }
+  // Friso colorido discreto; logomarca texturizada nas laterais.
+  b(s*1.094,.62,.12,.035,.063,2.38,[.11,.46,.26]);
+  b(s*1.098,.57,.12,.037,.052,2.38,[.96,.40,.06]);
+ }
+ // Para-brisa inclinado e capô curto, distinguindo-o dos outros carros.
+ q([-.94,1.14,1.33],[.94,1.14,1.33],[.80,1.99,.84],[-.80,1.99,.84],C.black);
+ q([-.84,1.25,1.336],[.84,1.25,1.336],[.70,1.88,.85],[-.70,1.88,.85],C.glass);
+ q([-.64,1.77,.93],[-.18,1.77,.93],[.08,1.45,1.23],[-.42,1.45,1.23],C.glassHi);
+ q([-.97,1.10,1.34],[.97,1.10,1.34],[1.03,.91,2.01],[-1.03,.91,2.01],C.bodyHi);
+ b(0,.89,1.75,1.80,.044,.43,C.bodyHi);
+ b(0,.76,2.117,.96,.23,.064,C.black);
+ for(const s of [-1,1]){
+  b(s*.74,.77,2.112,.45,.25,.065,C.black);
+  b(s*.74,.78,2.156,.34,.17,.051,C.reverse);
+  b(s*.99,.72,2.109,.067,.17,.055,C.amber);
+ }
+ // Rack discreto preto, escada MARROM em madeira/metal.
+ for(const dz of [-.90,.84]){
+  b(0,2.07,dz,1.86,.09,.17,C.rack);
+  for(const s of [-1,1])b(s*.75,2.018,dz,.11,.12,.12,C.rack);
+ }
+ for(const s of [-1,1]){
+  b(s*.46,2.18,-.28,.12,.16,4.04,C.brown);
+  b(s*.46,2.32,-.28,.046,.028,4.06,C.brownLit);
+  b(s*.46,2.22,-2.27,.14,.17,.085,C.brownEdge);
+  b(s*.46,2.22,1.73,.14,.17,.085,C.brownEdge);
+ }
+ for(let dz=-2.12;dz<1.70;dz+=.39){
+  b(0,2.22,dz,1.05,.095,.115,C.brownEdge);
+  b(0,2.305,dz,1.01,.025,.09,C.brownLit);
+ }
+}
+
 function carV2(x,z,color,model='hatch',hero=false){
+ if(hero){unoArtV5(x,z);return;}
  if(hero)model='uno';
  const van=model==='van',pickup=model==='pickup',sedan=model==='sedan'||model==='taxi',utility=model==='utility',uno=model==='uno';
  const w=van?2.43:pickup?2.26:uno?2.16:sedan?2.22:utility?2.18:2.02;
