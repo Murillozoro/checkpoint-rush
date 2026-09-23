@@ -93,13 +93,13 @@ function drawBrand3(x,z){if(!brandProgram3||!brandTex3||!document.getElementById
  gl3.useProgram(shader3);gl3.bindBuffer(gl3.ARRAY_BUFFER,buf3);gl3.enableVertexAttribArray(gl3.getAttribLocation(shader3,'pos'));gl3.enableVertexAttribArray(gl3.getAttribLocation(shader3,'color'));gl3.vertexAttribPointer(gl3.getAttribLocation(shader3,'pos'),3,gl3.FLOAT,false,24,0);gl3.vertexAttribPointer(gl3.getAttribLocation(shader3,'color'),3,gl3.FLOAT,false,24,12);
 }
 
-function resize3D(){if(!gl3)return;const r=canvas3d.getBoundingClientRect();renderWidth3=Math.max(300,r.width);renderHeight3=Math.max(240,r.height);const ratio=Math.min(window.devicePixelRatio||1,1.65);canvas3d.width=Math.round(renderWidth3*ratio);canvas3d.height=Math.round(renderHeight3*ratio);gl3.viewport(0,0,canvas3d.width,canvas3d.height);}
+function resize3D(){if(!gl3)return;const r=canvas3d.getBoundingClientRect();renderWidth3=Math.max(300,r.width);renderHeight3=Math.max(240,r.height);const ratio=Math.min(window.devicePixelRatio||1,renderWidth3<700?1.2:1.65);canvas3d.width=Math.round(renderWidth3*ratio);canvas3d.height=Math.round(renderHeight3*ratio);gl3.viewport(0,0,canvas3d.width,canvas3d.height);}
 function init3D(){try{gl3=canvas3d.getContext('webgl',{alpha:true,depth:true,antialias:true,premultipliedAlpha:false,powerPreference:'low-power'});if(!gl3)throw Error('WebGL não disponível');const makeShader=(type,src)=>{const sh=gl3.createShader(type);gl3.shaderSource(sh,src);gl3.compileShader(sh);if(!gl3.getShaderParameter(sh,gl3.COMPILE_STATUS))throw Error(gl3.getShaderInfoLog(sh));return sh;};shader3=gl3.createProgram();gl3.attachShader(shader3,makeShader(gl3.VERTEX_SHADER,VERT3));gl3.attachShader(shader3,makeShader(gl3.FRAGMENT_SHADER,FRAG3));gl3.linkProgram(shader3);if(!gl3.getProgramParameter(shader3,gl3.LINK_STATUS))throw Error('Falha na ligação dos shaders');gl3.useProgram(shader3);buf3=gl3.createBuffer();gl3.bindBuffer(gl3.ARRAY_BUFFER,buf3);let pos=gl3.getAttribLocation(shader3,'pos'),color=gl3.getAttribLocation(shader3,'color');gl3.enableVertexAttribArray(pos);gl3.enableVertexAttribArray(color);gl3.vertexAttribPointer(pos,3,gl3.FLOAT,false,24,0);gl3.vertexAttribPointer(color,3,gl3.FLOAT,false,24,12);loc3.fog=gl3.getUniformLocation(shader3,'fog');initDecal3(makeShader);gl3.enable(gl3.DEPTH_TEST);gl3.depthFunc(gl3.LEQUAL);gl3.disable(gl3.CULL_FACE);resize3D();}catch(err){gl3=null;canvas3d.style.background='#122443';canvas3d.style.display='none';canvas.style.visibility='visible';canvas.style.pointerEvents='auto';const p=document.getElementById('panel');if(p)p.insertAdjacentHTML('beforeend','<p style="color:#ffe599;font-size:12px">Não foi possível ativar o modo 3D neste navegador: '+String(err.message).replace(/[<>]/g,'')+'). A versão 3D requer WebGL.</p>');}}
 function wave3(d,a,b,amp){if(d<=a||d>=b)return 0;const q=(d-a)/(b-a);return amp*Math.sin(q*Math.PI)**2;}
 function trackX(d){return wave3(d,240,560,7)+wave3(d,780,1170,-10)+wave3(d,1280,1590,8)+wave3(d,1710,1950,20)+wave3(d,2010,2350,-24)+wave3(d,2410,2690,23)+wave3(d,2800,3140,-22)+wave3(d,3430,3690,14)+wave3(d,3810,4140,-23)+wave3(d,4270,4510,19)+wave3(d,4640,4870,-14);}
 function rgb3(hex){if(Array.isArray(hex))return hex;hex=hex.replace('#','');if(hex.length===3)hex=hex.split('').map(x=>x+x).join('');return [0,2,4].map(i=>parseInt(hex.slice(i,i+2),16)/255);}
 function dark3(c,m){const x=rgb3(c);return x.map(v=>Math.min(1,Math.max(0,v*m)));}
-function projected3(v){let dz=v[2]-camera3.z;if(dz<.32)return null;let scale=renderHeight3*.96/dz;let sx=renderWidth3*.50+(v[0]-camera3.x)*scale;let sy=renderHeight3*.30+(camera3.y-v[1])*scale;return [(sx/renderWidth3)*2-1,1-(sy/renderHeight3)*2,Math.min(.999,Math.max(-.999,(dz/900)*2-1))];}
+function projected3(v){let dz=v[2]-camera3.z;if(dz<.32)return null;let scale=renderHeight3*(player?(.997-Math.min(1,(player.speed||0)/290)*.095):.96)/dz;let sx=renderWidth3*.50+(v[0]-camera3.x)*scale;let sy=renderHeight3*.30+(camera3.y-v[1])*scale;return [(sx/renderWidth3)*2-1,1-(sy/renderHeight3)*2,Math.min(.999,Math.max(-.999,(dz/900)*2-1))];}
 function tri3(a,b,c,color){if(Math.min(a[2],b[2],c[2])<camera3.z+.35)return;const col=rgb3(color);for(let pt of [a,b,c]){const q=projected3(pt);if(!q)return;vertices3.push(...q,...col);}}
 function quad3(a,b,c,d,color){tri3(a,b,c,color);tri3(a,c,d,color);}
 function cuboid3(x,y,z,w,h,l,color){let a=x-w/2,b=x+w/2,n=z-l/2,f=z+l/2,t=y+h;quad3([a,y,n],[b,y,n],[b,t,n],[a,t,n],dark3(color,.72));quad3([b,y,f],[a,y,f],[a,t,f],[b,t,f],dark3(color,.98));quad3([a,t,n],[b,t,n],[b,t,f],[a,t,f],dark3(color,1.17));quad3([a,y,f],[a,y,n],[a,t,n],[a,t,f],dark3(color,.83));quad3([b,y,n],[b,y,f],[b,t,f],[b,t,n],dark3(color,.75));}
@@ -179,10 +179,27 @@ function wheelV2(x,z,r=.40){
  for(let i=0;i<10;i++){
   const a=i*Math.PI/5,b=(i+1)*Math.PI/5;
   const p=(rr,theta,xx)=>[xx,.43+rr*Math.sin(theta),z+rr*Math.cos(theta)];
-  tri3(p(r,a,x),p(r,b,x),[x,.43,z],tire);
-  tri3(p(r*.60,a,x+.012),p(r*.60,b,x+.012),[x+.012,.43,z],rim);
-  tri3(p(r*.20,a,x+.023),p(r*.20,b,x+.023),[x+.023,.43,z],metal);
+  quad3(p(r,a,x-.12),p(r,b,x-.12),p(r,b,x+.045),p(r,a,x+.045),tire);
+  tri3(p(r,a,x+.048),p(r,b,x+.048),[x+.048,.43,z],tire);
+  tri3(p(r*.62,a,x+.056),p(r*.62,b,x+.056),[x+.056,.43,z],rim);
+  tri3(p(r*.18,a,x+.066),p(r*.18,b,x+.066),[x+.066,.43,z],metal);
  }
+}
+function cabinV3(x,z,w,len,height,paint,glass){
+ const y=1.085,wide=w*.435,top=w*.397,rl=z-len*.51,fl=z+len*.51,rt=z-len*.45,ft=z+len*.43;
+ quad3([x-wide,y,rl],[x+wide,y,rl],[x+top,height,rt],[x-top,height,rt],dark3(paint,.84));
+ quad3([x+wide,y,fl],[x-wide,y,fl],[x-top,height,ft],[x+top,height,ft],dark3(paint,.87));
+ quad3([x-top,height,rt],[x+top,height,rt],[x+top,height,ft],[x-top,height,ft],dark3(paint,1.10));
+ for(const s of [-1,1]){
+  quad3([x+s*wide,y,rl],[x+s*wide,y,fl],[x+s*top,height,ft],[x+s*top,height,rt],dark3(paint,.91));
+  const a=x+s*(wide+.012),b=x+s*(top+.014);
+  quad3([a,y+.16,rl+.18],[a,y+.16,fl-.20],[b,height-.16,ft-.09],[b,height-.16,rt+.09],glass);
+  const q=.42,u=rl+(fl-rl)*q,v=rt+(ft-rt)*q;
+  quad3([a,y+.14,u-.022],[a,y+.14,u+.022],[b,height-.11,v+.022],[b,height-.11,v-.022],[.07,.09,.11]);
+ }
+ quad3([x-wide,y+.085,rl-.013],[x+wide,y+.085,rl-.013],[x+top,height-.080,rt-.012],[x-top,height-.080,rt-.012],[.07,.09,.11]);
+ quad3([x-wide*.87,y+.18,rl-.024],[x+wide*.87,y+.18,rl-.024],[x+top*.88,height-.17,rt-.022],[x-top*.88,height-.17,rt-.022],glass);
+ quad3([x-wide*.90,y+.16,fl+.015],[x+wide*.90,y+.16,fl+.015],[x+top*.87,height-.15,ft+.019],[x-top*.87,height-.15,ft+.019],glass);
 }
 function carV2(x,z,color,model='hatch',hero=false){
  if(hero)model='uno';
@@ -200,11 +217,9 @@ function carV2(x,z,color,model='hatch',hero=false){
  const roofL=pickup?l*.35:sedan?l*.49:van?l*.80:uno?l*.61:utility?l*.67:l*.59;
  const roofC=pickup?z+l*.18:sedan?z+l*.035:van?z:uno?z+.10:z+.05;
  if(!pickup){
-  cuboid3(x,1.055,roofC,w*.86,roofH-1.055,roofL,dark3(paint,.94));
-  cuboid3(x,roofH-.09,roofC,w*.87,.10,roofL,dark3(paint,1.11));
+  cabinV3(x,roofC,w,roofL,roofH,paint,glass);
  }else{
-  cuboid3(x,1.06,roofC,w*.83,roofH-1.06,roofL,dark3(paint,.93));
-  cuboid3(x,roofH-.08,roofC,w*.87,.08,roofL,paint);
+  cabinV3(x,roofC,w,roofL,roofH,paint,glass);
   cuboid3(x,1.01,z-l*.29,w*.82,.15,l*.41,[.15,.16,.18]);
   for(const s of [-1,1])cuboid3(x+s*w*.45,1.00,z-l*.30,.10,.38,l*.44,paint);
   cuboid3(x,1.00,z-l*.505,w*.9,.35,.12,paint);
@@ -212,11 +227,8 @@ function carV2(x,z,color,model='hatch',hero=false){
  // Vidros laterais, pilares e maçanetas seguem o tamanho da cabine de cada veículo.
  for(const s of [-1,1]){
   const side=x+s*w*.436, cabinZ=roofC,sideL=roofL*.81;
-  cuboid3(side,1.21,cabinZ,.025,Math.max(.28,roofH-1.44),sideL,glass);
-  if(!van){
-   cuboid3(side+s*.011,1.20,cabinZ+.05,.032,roofH-1.27,.055,black);
-   if(!pickup)cuboid3(side+s*.012,1.19,cabinZ-sideL*.30,.030,roofH-1.25,.05,black);
-  }else cuboid3(side+s*.01,1.21,cabinZ+roofL*.17,.032,roofH-1.38,.09,black);
+  // Angled glass and B-pillar are part of cabinV3.
+  cuboid3(side,1.065,cabinZ,.022,.045,sideL,black);
   cuboid3(x+s*w*.52,.69,z,.026,.052,l*.82,black);
   cuboid3(x+s*w*.50,.85,z+l*.11,.031,.065,.30,black);
   if(!pickup)cuboid3(x+s*w*.50,.85,z-l*.20,.031,.065,.30,black);
@@ -227,13 +239,8 @@ function carV2(x,z,color,model='hatch',hero=false){
   }
  }
  // Vidros frontal e traseiro com moldura, lanternas retangulares.
- cuboid3(x,1.26,z+front,w*.73,Math.max(.33,roofH-1.36),.063,black);
- cuboid3(x,1.27,z+front+.012,w*.68,Math.max(.27,roofH-1.43),.066,glass);
- if(!pickup){
-  cuboid3(x,1.25,z-tail,w*.75,Math.max(.31,roofH-1.37),.064,black);
-  cuboid3(x,1.27,z-tail-.014,w*.69,Math.max(.26,roofH-1.45),.068,glass);
-  if(uno)cuboid3(x-.19,1.12,z-tail-.062,.66,.028,.023,black);
- }
+ cuboid3(x,.89,z+l*.375,w*.65,.055,.55,dark3(paint,1.08));
+ if(uno)cuboid3(x-.19,1.30,z-tail-.060,.66,.028,.023,black);
  cuboid3(x,.41,z+l*.50,w*.95,.30,.21,black);
  cuboid3(x,.38,z-l*.50,w*.96,.28,.23,black);
  cuboid3(x,.67,z+l*.517,w*.52,.15,.058,black);
@@ -253,7 +260,7 @@ function carV2(x,z,color,model='hatch',hero=false){
  }
  if(uno){
   // Porta traseira ereta, janela ampla, escada laranja e assinatura Filhos de Blanka.
-  cuboid3(x,1.90,z-.93,w*.82,.11,.20,paint);
+  cuboid3(x,1.93,z-.93,w*.82,.06,.17,paint);
   cuboid3(x,1.12,z-l*.514,w*.78,.030,.022,dark3(paint,.84));
   cuboid3(x+.55,.49,z-l*.519,.49,.054,.019,[.07,.43,.23]);
   cuboid3(x+.55,.56,z-l*.520,.45,.043,.021,[.96,.38,.05]);
@@ -265,6 +272,8 @@ function carV2(x,z,color,model='hatch',hero=false){
   for(let zz=z-2.19;zz<z+2.20;zz+=.42)cuboid3(x,2.25,zz,1.12,.08,.12,[1,.58,.07]);
   for(const zz of [z-2.3,z+2.3])for(const s of [-1,1])
    cuboid3(x+s*.49,2.22,zz,.17,.17,.13,[.26,.28,.30]);
+  cuboid3(x,.96,z-l*.501,w*.66,.028,.025,[.12,.13,.14]);
+  for(const s of [-1,1]){cuboid3(x+s*w*.511,.75,z+.13,.031,.085,1.74,[.08,.48,.26]);cuboid3(x+s*w*.514,.64,z+.13,.031,.075,1.74,[.98,.39,.05]);}
  }
 }
 function obstacleV2(x,z,type){
@@ -289,7 +298,7 @@ for(let d=Math.ceil((base-5)/30)*30;d<base+530;d+=30){
 }
 for(let d=Math.ceil((base-5)/78)*78;d<base+900;d+=78)scenery3(d,d<1550?0:d<3200?1:2);
 if(player){let end=STAGES[stageIndex].end;if(end>base-7&&end<base+900){let x=trackX(end),acc=stage.accent;cuboid3(x-6.85,0,end,.36,4.8,.46,[.96,.96,.98]);cuboid3(x+6.85,0,end,.36,4.8,.46,[.96,.96,.98]);cuboid3(x,4.33,end,14.1,.67,.7,acc);cuboid3(x,4.39,end,3,.15,.73,[.11,.19,.27]);}}}
-function draw3D(){if(!gl3||contextLost3)return;let theme=STAGE3[stageIndex];if(canvas3d.dataset.theme!==String(stageIndex)){canvas3d.dataset.theme=String(stageIndex);canvas3d.style.background=theme.background;}let d=player?player.distance:0;const targetCam=trackX(d)+(player?player.lateral*6.25*.72:0);camera3.x+=(targetCam-camera3.x)*Math.min(.22,Math.max(.07,renderWidth3/12000));camera3.z=d-8.6;vertices3=[];road3();if(player){for(let o of objects){let dist=o.distance;if(o.passed||dist<d-8||dist>d+900)continue;let x=trackX(dist)+o.lane*6.25*.72;if(o.type==='car'||o.type==='van')carV2(x,dist,o.color,o.model||(o.type==='van'?'van':'hatch'));else obstacleV2(x,dist,o.type);}carV2(trackX(d+1.5)+player.lateral*6.25*.72,d+1.5,[.96,.96,.94],false,true);}else carV2(trackX(d+1.5),d+1.5,[.96,.96,.94],false,true);
+function draw3D(){if(!gl3||contextLost3)return;let theme=STAGE3[stageIndex];if(canvas3d.dataset.theme!==String(stageIndex)){canvas3d.dataset.theme=String(stageIndex);canvas3d.style.background=theme.background;}let d=player?player.distance:0;const targetCam=trackX(d)+(player?player.lateral*6.25*.72:0);camera3.x+=(targetCam-camera3.x)*(1-Math.exp(-.016*8.6));camera3.z=d-8.6;vertices3=[];road3();if(player){for(let o of objects){let dist=o.distance;if(o.passed||dist<d-8||dist>d+900)continue;let x=trackX(dist)+o.lane*6.25*.72;if(o.type==='car'||o.type==='van')carV2(x,dist,o.color,o.model||(o.type==='van'?'van':'hatch'));else obstacleV2(x,dist,o.type);}carV2(trackX(d+1.5)+player.lateral*6.25*.72,d+1.5,[.96,.96,.94],false,true);}else carV2(trackX(d+1.5),d+1.5,[.96,.96,.94],false,true);
 gl3.viewport(0,0,canvas3d.width,canvas3d.height);gl3.clearColor(0,0,0,0);gl3.clear(gl3.COLOR_BUFFER_BIT|gl3.DEPTH_BUFFER_BIT);gl3.useProgram(shader3);gl3.bindBuffer(gl3.ARRAY_BUFFER,buf3);gl3.bufferData(gl3.ARRAY_BUFFER,new Float32Array(vertices3),gl3.DYNAMIC_DRAW);gl3.uniform3fv(loc3.fog,new Float32Array(theme.fog));gl3.drawArrays(gl3.TRIANGLES,0,vertices3.length/6);drawBrand3(trackX(d+1.5)+(player?player.lateral*6.25*.72:0),d+1.5);canvas3d.style.filter=flash>0?'brightness('+(1+flash*.45)+')':'';}
 canvas3d.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost3=true;});canvas3d.addEventListener('webglcontextrestored',()=>{contextLost3=false;init3D();});
 
