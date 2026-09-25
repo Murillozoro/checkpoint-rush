@@ -281,6 +281,15 @@ function checkpointPrepareMesh(){
   return list.length>2500;
  }catch(err){checkpointImportedFailed=true;console.warn('Falha no modelo GLB; usando modelo anterior',err);return false;}
 }
+// Sombra do carro, desenhada na mesma malha da pista antes da carroceria.
+function shadowV3(x,z,w,l){
+ const y=.065,color=[.115,.135,.155],segments=14;
+ for(let i=0;i<segments;i++){
+  const a=i*Math.PI*2/segments,b=(i+1)*Math.PI*2/segments;
+  tri3([x,y,z],[x+Math.cos(a)*w,y,z+Math.sin(a)*l],[x+Math.cos(b)*w,y,z+Math.sin(b)*l],color);
+ }
+}
+
 function checkpointDrawImportedUno(x,z){
  if(!checkpointPrepareMesh())return false;
  shadowV3(x,z,1.13,1.88);
